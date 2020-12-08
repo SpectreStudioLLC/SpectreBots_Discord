@@ -9,7 +9,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 #Grab variables from config
-load_dotenv('config.env')
+load_dotenv('focus.env')
 TOKEN = os.getenv('DISCORD_TOKEN')
 Admin_Role = os.getenv('ADMIN_ROLE')
 
@@ -28,13 +28,34 @@ async def dm(ctx, role: discord.Role, *, msg):
 	count = 0
 	server = ctx.message.guild
 	global members
-	members = [m for m in ctx.guild.members if role in m.roles]
 
-	for m in members:
-		await m.create_dm()
-		await m.dm_channel.send(msg)
-		count = count + 1
+	try:
+		members = [m for m in ctx.guild.members if role in m.roles]
+
+		await ctx.send('Starting to send DMs.')
+		for m in members:
+			try:
+				await m.create_dm()
+				await m.dm_channel.send(msg)
+				count = count + 1
+			except:
+				await ctx.send('Failed to send message to {}'.format(m.name))
+
+	except:
+		await ctx.send('Invalid Role!')
 	
 	await ctx.send("Done messaging the members. Sent out to {} members!".format(count))
+
+#Error for if role is invalid
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.RoleNotFound):
+        await ctx.send(error)
+
+#Error
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandInvokeError):
+        await ctx.send(error)
 
 bot.run(TOKEN)
