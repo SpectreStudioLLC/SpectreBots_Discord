@@ -9,7 +9,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 #Grab variables from config
-load_dotenv('focus.env')
+load_dotenv('config.env')
 TOKEN = os.getenv('DISCORD_TOKEN')
 Admin_Role = os.getenv('ADMIN_ROLE')
 
@@ -26,36 +26,32 @@ async def on_ready():
 @commands.has_role(Admin_Role)
 async def dm(ctx, role: discord.Role, *, msg):
 	count = 0
-	server = ctx.message.guild
 	global members
+	members = [m for m in ctx.guild.members if role in m.roles]
 
-	try:
-		members = [m for m in ctx.guild.members if role in m.roles]
-
-		await ctx.send('Starting to send DMs.')
-		for m in members:
-			try:
-				await m.create_dm()
-				await m.dm_channel.send(msg)
-				count = count + 1
-			except:
-				await ctx.send('Failed to send message to {}'.format(m.name))
-
-	except:
-		await ctx.send('Invalid Role!')
+	await ctx.send('Starting to send DMs.')
+	
+	for m in members:
+		try:
+			await m.create_dm()
+			await m.dm_channel.send(msg)
+			await ctx.send('Message to {}'.format(m.name))
+			count = count + 1
+		except:
+			await ctx.send('Failed to send message to {}'.format(m.name))
 	
 	await ctx.send("Done messaging the members. Sent out to {} members!".format(count))
 
-#Error for if role is invalid
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.RoleNotFound):
-        await ctx.send(error)
 
-#Error
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandInvokeError):
-        await ctx.send(error)
+#Error Handling
+@dm.error
+async def dm_error(ctx, error):
+	if isinstance(error, commands.RoleNotFound):
+		await ctx.send(error)
+	elif isinstance(error, commands.CommandInvokeError):
+		await ctx.send(error)
+	else:
+		await ctx.send(error)
+		await ctx.send('Error: Check the vps logs for error')
 
 bot.run(TOKEN)
